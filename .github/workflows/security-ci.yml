@@ -29,7 +29,7 @@ jobs:
         run: semgrep --config=auto . > semgrep_report.txt || true
 
       - name: Upload Semgrep Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: semgrep-report
           path: semgrep_report.txt
@@ -60,7 +60,7 @@ jobs:
         run: snyk test > snyk_report.txt || true
 
       - name: Upload Snyk Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: snyk-report
           path: snyk_report.txt
@@ -99,7 +99,7 @@ jobs:
           docker run -v ${{ github.workspace }}:/zap/wrk/:rw -t owasp/zap2docker-stable zap-full-scan.py -t http://host.docker.internal:5000 -r zap_report.html || true
 
       - name: Upload ZAP Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: zap-report
           path: zap_report.html
