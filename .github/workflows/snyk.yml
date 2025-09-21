@@ -40,4 +40,4 @@ jobs:
 
       # 6️⃣ Roda Snyk SCA
       - name: Run Snyk SCA
-        run: snyk test --all-projects
+        run: snyk test --file=requirements.txt

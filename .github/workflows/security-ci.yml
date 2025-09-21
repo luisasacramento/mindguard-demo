@@ -57,7 +57,7 @@ jobs:
         run: snyk auth $SNYK_TOKEN
 
       - name: Run Snyk Test
-        run: snyk test --all-projects --file=requirements.txt > snyk_report.txt || true
+        run: snyk test --file=requirements.txt
 
       - name: Upload Snyk Report
         uses: actions/upload-artifact@v4
