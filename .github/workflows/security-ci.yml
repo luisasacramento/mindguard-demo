@@ -77,7 +77,7 @@ jobs:
       - name: Run OWASP ZAP Scan
         run: |
           # Substitua a URL abaixo pela URL do seu staging
-          ZAP_TARGET_URL="https://minha-api-staging.onrender.com"
+          ZAP_TARGET_URL="https://mindguard-demo-production.up.railway.app/"
 
           docker run -v ${{ github.workspace }}:/zap/wrk/:rw -t owasp/zap2docker-stable \
           zap-full-scan.py -t $ZAP_TARGET_URL -r zap_report.html || true
