@@ -1,0 +1,43 @@
+name: Snyk SCA Scan
+
+# Gatilhos do workflow
+on:
+  push:
+    branches: [ main ]   # roda em push no main
+  pull_request:          # roda em PR
+  workflow_dispatch:      # permite rodar manualmente
+
+jobs:
+  snyk-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Pega o código do repositório
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2️⃣ Configura Python
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      # 3️⃣ Instala Snyk
+      - name: Install Snyk
+        run: npm install -g snyk
+
+      # 4️⃣ Autentica usando token
+      - name: Authenticate Snyk
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}  # adicione o token nos Secrets do GitHub
+        run: snyk auth $SNYK_TOKEN
+
+      # 5️⃣ Instala dependências do seu projeto (opcional)
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      # 6️⃣ Roda Snyk SCA
+      - name: Run Snyk SCA
+        run: snyk test --all-projects
