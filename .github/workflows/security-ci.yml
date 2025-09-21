@@ -9,7 +9,7 @@ on:
 
 jobs:
   # -------------------------
-  # SAST – Semgrep
+  # 1) SAST – Semgrep
   # -------------------------
   sast:
     runs-on: ubuntu-latest
@@ -35,7 +35,7 @@ jobs:
           path: semgrep_report.txt
 
   # -------------------------
-  # SCA – Snyk
+  # 2) SCA – Snyk (Python)
   # -------------------------
   sca:
     runs-on: ubuntu-latest
@@ -43,13 +43,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          node-version: '18'
+          python-version: '3.x'
 
       - name: Install Snyk
-        run: npm install -g snyk
+        run: pip install snyk
 
       - name: Authenticate Snyk
         env:
@@ -57,7 +57,7 @@ jobs:
         run: snyk auth $SNYK_TOKEN
 
       - name: Run Snyk Test
-        run: snyk test > snyk_report.txt || true
+        run: snyk test --all-projects --file=requirements.txt > snyk_report.txt || true
 
       - name: Upload Snyk Report
         uses: actions/upload-artifact@v4
@@ -66,37 +66,21 @@ jobs:
           path: snyk_report.txt
 
   # -------------------------
-  # DAST – OWASP ZAP
+  # 3) DAST – OWASP ZAP (Staging)
   # -------------------------
   dast:
     runs-on: ubuntu-latest
-    services:
-      web:
-        image: python:3.11
-        options: >-
-          --health-cmd "curl -f http://localhost:5000 || exit 1"
-          --health-interval 5s
-          --health-timeout 10s
-          --health-retries 5
-        ports:
-          - 5000:5000
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup Docker
-        uses: docker/setup-buildx-action@v2
-
-      - name: Run application
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
-          nohup python app.py &
-
       - name: Run OWASP ZAP Scan
         run: |
-          docker run -v ${{ github.workspace }}:/zap/wrk/:rw -t owasp/zap2docker-stable zap-full-scan.py -t http://host.docker.internal:5000 -r zap_report.html || true
+          # Substitua a URL abaixo pela URL do seu staging
+          ZAP_TARGET_URL="https://minha-api-staging.onrender.com"
+
+          docker run -v ${{ github.workspace }}:/zap/wrk/:rw -t owasp/zap2docker-stable \
+          zap-full-scan.py -t $ZAP_TARGET_URL -r zap_report.html || true
 
       - name: Upload ZAP Report
         uses: actions/upload-artifact@v4
