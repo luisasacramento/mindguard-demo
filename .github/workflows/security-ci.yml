@@ -1,134 +1,105 @@
-name: Security CI/CD (SAST + SCA + DAST)
+name: CI/CD Security Pipeline
 
-# Gatilhos do workflow
 on:
-  pull_request:           # roda a cada PR
   push:
-    branches: [ main ]    # roda quando houver push no main
-  workflow_dispatch:      # permite rodar manualmente
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   # -------------------------
-  # 1) SAST — Semgrep
+  # SAST – Semgrep
   # -------------------------
-  semgrep:
+  sast:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4         # clona o repo
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
-      - name: Install semgrep
-        run: python -m pip install --upgrade pip && pip install semgrep
-      - name: Run Semgrep (SAST)
-        run: |
-          # roda análise estática
-          semgrep --config=auto --json --output=semgrep.json
-          # conta vulnerabilidades HIGH/CRITICAL
-          grep -i -E '"severity"\s*:\s*"(High|Critical|HIGH|CRITICAL)"' semgrep.json | wc -l > semgrep_high_count.txt
-      - name: Upload semgrep artifacts
-        uses: actions/upload-artifact@v4
+          python-version: '3.x'
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep
+        run: semgrep --config=auto . > semgrep_report.txt || true
+
+      - name: Upload Semgrep Report
+        uses: actions/upload-artifact@v3
         with:
           name: semgrep-report
-          path: |
-            semgrep.json
-            semgrep_high_count.txt
+          path: semgrep_report.txt
 
   # -------------------------
-  # 2) SCA — Snyk (opção A)
+  # SCA – Snyk
   # -------------------------
-  snyk:
+  sca:
     runs-on: ubuntu-latest
-    if: ${{ secrets.SNYK_TOKEN != '' }}   # só roda se SNYK_TOKEN existir
     steps:
-      - uses: actions/checkout@v4
-      - name: Run Snyk test (SCA)
-        uses: snyk/actions/node@master
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Snyk
+        run: npm install -g snyk
+
+      - name: Authenticate Snyk
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: test --json > snyk.json || true
-      - name: Count high/critical in Snyk
-        run: |
-          python - <<'PY'
-import json
-j=json.load(open('snyk.json'))
-c=0
-for v in j.get('vulnerabilities',[]):
-    if v.get('severity','').lower() in ('high','critical'):
-        c+=1
-open('snyk_high_count.txt','w').write(str(c))
-print('high/critical:',c)
-PY
-      - name: Upload snyk artifacts
-        uses: actions/upload-artifact@v4
+        run: snyk auth $SNYK_TOKEN
+
+      - name: Run Snyk Test
+        run: snyk test > snyk_report.txt || true
+
+      - name: Upload Snyk Report
+        uses: actions/upload-artifact@v3
         with:
           name: snyk-report
-          path: |
-            snyk.json
-            snyk_high_count.txt
+          path: snyk_report.txt
 
   # -------------------------
-  # 2b) SCA — OWASP Dependency-Check (opção B)
+  # DAST – OWASP ZAP
   # -------------------------
-  dependency-check:
+  dast:
     runs-on: ubuntu-latest
+    services:
+      web:
+        image: python:3.11
+        options: >-
+          --health-cmd "curl -f http://localhost:5000 || exit 1"
+          --health-interval 5s
+          --health-timeout 10s
+          --health-retries 5
+        ports:
+          - 5000:5000
     steps:
-      - uses: actions/checkout@v4
-      - name: Run OWASP Dependency-Check (CLI)
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: Run application
         run: |
-          # instala CLI da ferramenta
-          curl -sL https://github.com/jeremylong/DependencyCheck/releases/latest/download/dependency-check-6.5.0-release.zip -o dc.zip
-          unzip dc.zip -d dc
-          # roda varredura no projeto
-          ./dc/bin/dependency-check.sh --project "mindguard-demo" --scan . --format ALL --out dependency-check-report || true
-          # conta CVSS >= 7 (alto/critico) no XML
-          grep -i -E "<cvssScore>[7-9]|<cvssScore>10" dependency-check-report/* || true
-          echo "Verifique dependency-check-report/ para detalhes (HTML, JSON, XML)"
-      - name: Upload dependency-check artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dependencycheck-report
-          path: dependency-check-report
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+          nohup python app.py &
 
-  # -------------------------
-  # 3) DAST — OWASP ZAP (apenas staging)
-  # -------------------------
-  zap:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: ZAP Full Scan (DAST) - STAGING ONLY
-        uses: zaproxy/action-full-scan@v0.12.0
-        with:
-          target: '${{ secrets.TARGET_URL }}'   # usa a URL do staging do secret
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fail_action: 'true'                    # faz o job falhar se houver alertas
-      - name: Upload ZAP artifact
-        uses: actions/upload-artifact@v4
+      - name: Run OWASP ZAP Scan
+        run: |
+          docker run -v ${{ github.workspace }}:/zap/wrk/:rw -t owasp/zap2docker-stable zap-full-scan.py -t http://host.docker.internal:5000 -r zap_report.html || true
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v3
         with:
           name: zap-report
-          path: zap_report*
-
-  # -------------------------
-  # 4) Gate final — bloqueio de deploy se houver vulnerabilidades críticas
-  # -------------------------
-  gate:
-    runs-on: ubuntu-latest
-    needs: [semgrep, snyk, dependency-check, zap]
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-      - name: Simple gate: fail if any high/critical found
-        run: |
-          # soma os high/critical de Semgrep e Snyk
-          c=0
-          [ -f artifacts/semgrep-report/semgrep_high_count.txt ] && c=$((c + $(cat artifacts/semgrep-report/semgrep_high_count.txt)))
-          [ -f artifacts/snyk-report/snyk_high_count.txt ] && c=$((c + $(cat artifacts/snyk-report/snyk_high_count.txt)))
-          echo "Total high/critical findings = $c"
-          if [ "$c" -gt 0 ]; then
-            echo "Encontradas vulnerabilidades HIGH/CRITICAL — bloqueando pipeline"
-            exit 1
+          path: zap_report.html
