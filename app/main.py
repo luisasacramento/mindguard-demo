@@ -1,16 +1,9 @@
 from fastapi import FastAPI, HTTPException
-from app.ml_model import load_model, predict_risk
 from app.storage import Storage
 import os
 
-app = FastAPI(title="MindGuard Demo")
+app = FastAPI(title="MindGuard Demo Simplificada")
 storage = Storage("storage.json")
-model = None
-
-@app.on_event("startup")
-def startup_event():
-    global model
-    model = load_model()
 
 @app.post("/consent")
 def give_consent(user_id: str, consent: bool):
@@ -31,7 +24,8 @@ def get_risk(user_id: str):
     data = storage.get_user_data(user_id)
     if not data:
         raise HTTPException(status_code=404, detail="No data for user")
-    risk = predict_risk(model, data)
+    # Risco simulado: só retorna se a aposta é alta
+    risk = "high" if data["amount"] > 100 else "low"
     return {"risk": risk}
 
 @app.post("/intervene/{user_id}")
@@ -44,9 +38,14 @@ def intervene(user_id: str):
 def report(user_id: str):
     return storage.get_user_data(user_id)
 
-# 🚨 Endpoint inseguro de demonstração (vai ser detectado por Semgrep)
+# 🚨 Vulnerabilidade proposital para testes SAST/DAST
 @app.get("/admin/run_eval")
 def insecure_admin(cmd: str):
-    # não faça isso em produção!
+    # Comando arbitrário (danger zone)
     os.system(cmd)
     return {"executed": cmd}
+
+# 🚨 Vulnerabilidade proposital: exposição de variável de ambiente
+@app.get("/leak_env")
+def leak_env(secret_key: str = "SECRET_KEY"):
+    return {"secret": os.environ.get(secret_key, "not_set")}
