@@ -35,7 +35,7 @@ jobs:
           path: semgrep_report.txt
 
   # -------------------------
-  # 2) SCA – Snyk (Python)
+  # 2) SCA – Snyk (Python via Node.js)
   # -------------------------
   sca:
     runs-on: ubuntu-latest
@@ -43,13 +43,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          python-version: '3.x'
+          node-version: '18'
 
       - name: Install Snyk
-        run: pip install snyk
+        run: npm install -g snyk
 
       - name: Authenticate Snyk
         env:
@@ -76,7 +76,7 @@ jobs:
 
       - name: Run OWASP ZAP Scan
         run: |
-          # Substitua a URL abaixo pela URL do seu staging
+          # Substitua pela URL pública do seu staging
           ZAP_TARGET_URL="https://mindguard-demo-production.up.railway.app/"
 
           docker run -v ${{ github.workspace }}:/zap/wrk/:rw -t owasp/zap2docker-stable \
