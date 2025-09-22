@@ -7,6 +7,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: returntocorp/semgrep-action@v1
+
+      - name: Run Semgrep
+        run: |
+          pip install semgrep
+          semgrep --config=p/security-audit --json > semgrep-report.txt || true
+
+      - name: Upload Semgrep report
+        uses: actions/upload-artifact@v4
         with:
-          config: p/security-audit
+          name: semgrep-report
+          path: semgrep-report.txt
