@@ -7,34 +7,21 @@ Este relatório reúne os resultados das análises de segurança automatizadas (
 ## 1. Relatório de Vulnerabilidades Estáticas (SAST – Semgrep)
 
 ### 🔎 Resumo
-Foi realizada análise estática no código-fonte (`main.py`, `storage.py`).  
+## 📑 1. SAST – Análise Estática de Código
 
-### 📊 Resultados por Severidade
-- **Crítico**
-  - **Execução de comandos arbitrários**  
-    - Local: `main.py`, função `insecure_admin`  
-    - Código: `os.system(cmd)`  
-    - Risco: Permite que usuários executem comandos no servidor.  
-    - **Recomendação:** Nunca usar `os.system` com entrada do usuário. Usar biblioteca segura ou remover endpoint.  
+**Entregável:** Relatório automatizado gerado pelo pipeline CI com as vulnerabilidades encontradas, classificadas por severidade e com recomendações de correção.  
 
-- **Alto**
-  - **Exposição de variáveis de ambiente**  
-    - Local: `main.py`, função `leak_env`  
-    - Código: `os.environ.get(secret_key, "not_set")`  
-    - Risco: Permite exfiltrar chaves e segredos da aplicação.  
-    - **Recomendação:** Remover endpoint ou restringir a uso interno/admin.  
+**Arquivos analisados:** `main.py`, `storage.py`  
 
-- **Médio**
-  - **Falta de autenticação/autorização em endpoints sensíveis**  
-    - Endpoints: `/admin/run_eval`, `/leak_env`, `/report/{user_id}`  
-    - Risco: Usuários não autenticados podem acessar funções administrativas.  
-    - **Recomendação:** Implementar autenticação e RBAC.  
+### Resultados
 
-- **Baixo**
-  - **Validação insuficiente de entradas**  
-    - Exemplo: `amount`, `frequency`, `user_id` em `/submit_bet`.  
-    - Risco: Entrada inesperada pode causar erros ou inconsistência.  
-    - **Recomendação:** Validar tipos e limites com Pydantic.  
+| Severidade | Localização      | Vulnerabilidade | Evidência / Detalhes | Sugestão de correção |
+|------------|------------------|-----------------|----------------------|-----------------------|
+| 🔴 Crítica | `main.py` (linha 54) | Execução remota de código (RCE) via `os.system` | Função `/admin/run_eval?cmd=` permite execução arbitrária | Remover `os.system`; usar `subprocess` apenas com whitelist |
+| 🟠 Alta    | `main.py` (linha 62) | Exposição de variáveis de ambiente | Endpoint `/leak_env` retorna valores de `os.environ` | Nunca expor variáveis de ambiente; usar vault seguro |
+| 🟡 Média   | `main.py` (funções `report`, `leak_env`, `admin`) | Falta de autenticação/autorização | Endpoints sensíveis não requerem credenciais | Implementar autenticação e RBAC |
+| 🟢 Baixa   | `submit_bet` e `give_consent` | Falta de validação de entrada | Inputs `amount`, `frequency` e `user_id` não validados | Utilizar **Pydantic Models** para validação |
+
 
 📂 **Entregável:** `semgrep-report.txt`  
 
@@ -42,33 +29,16 @@ Foi realizada análise estática no código-fonte (`main.py`, `storage.py`).
 
 ## 2. Relatório de Varredura Dinâmica (DAST – OWASP ZAP)
 
-### 🔎 Resumo
-Teste dinâmico realizado em ambiente publicado:  
-👉 `https://mindguard-demo-production.up.railway.app/`
+**Ambiente analisado:** `https://mindguard-demo-production.up.railway.app/`
 
-### 📊 Resultados
-- **Crítico**
-  - **Remote Code Execution (RCE)**  
-    - Endpoint: `/admin/run_eval?cmd=whoami`  
-    - Evidência: Execução do comando retornando saída no servidor.  
-    - **Mitigação:** Remover endpoint ou usar apenas para administradores com autenticação forte.  
+### Resultados
 
-- **Alto**
-  - **Exposição de informações sensíveis**  
-    - Endpoint: `/leak_env?secret_key=SECRET_KEY`  
-    - Evidência: Retorna variável de ambiente.  
-    - **Mitigação:** Remover endpoint ou restringir via autenticação.  
-
-- **Médio**
-  - **Possibilidade de Enumeration de usuários**  
-    - Endpoint: `/risk/{user_id}` e `/report/{user_id}`  
-    - Evidência: Retorno `403` ou `404` pode ser usado para descobrir IDs válidos.  
-    - **Mitigação:** Padronizar mensagens de erro.  
-
-- **Baixo**
-  - **Headers de segurança ausentes**  
-    - Nenhum `Strict-Transport-Security`, `X-Content-Type-Options` ou `Content-Security-Policy`.  
-    - **Mitigação:** Configurar via middleware (Starlette/FastAPI).  
+| Severidade | Endpoint | Vulnerabilidade | Payload usado | Evidência | Sugestão de correção |
+|------------|----------|-----------------|---------------|-----------|-----------------------|
+| 🔴 Crítica | `/admin/run_eval` | Execução remota de código (RCE) | `?cmd=whoami` | Resposta retornou execução do comando no servidor | Remover endpoint ou restringir com autenticação forte |
+| 🟠 Alta    | `/leak_env` | Vazamento de informações sensíveis | `?secret_key=SECRET_KEY` | Resposta retornou valor da variável de ambiente | Nunca expor dados de `os.environ` em respostas |
+| 🟡 Média   | `/risk/{user_id}` e `/report/{user_id}` | Enumeração de usuários | Teste com IDs existentes/inexistentes | Retorno diferente (`403` vs `404`) | Usar mensagens genéricas para erros de autorização |
+| 🟢 Baixa   | Todas as respostas HTTP | Ausência de cabeçalhos de segurança | N/A | Falta de HSTS, CSP e X-Content-Type-Options | Adicionar middleware para headers de segurança |   
 
 📂 **Entregável:** `zap-report.txt`  
 
@@ -76,23 +46,24 @@ Teste dinâmico realizado em ambiente publicado:
 
 ## 3. Relatório de Dependências (SCA – Snyk)
 
-### 🔎 Resumo
-A aplicação utiliza **FastAPI** e dependências comuns de Python (ex: `uvicorn`, `pydantic`).  
+## 📦 SCA – Análise de Componentes de Terceiros
 
-### 📊 Resultados
-- **Alto**
-  - **FastAPI < 0.95.2** (se versão antiga usada)  
-    - CVE: DoS via manipulação de requests.  
-    - **Ação:** Atualizar para a versão mais recente.  
+### Entregável: Relatório de dependências com riscos associados, sugestões de atualização e plano de ação para substituição ou correção.
 
-- **Médio**
-  - **Pydantic < 1.10.7**  
-    - Risco: Validação incorreta de tipos pode permitir bypass de regras.  
-    - **Ação:** Atualizar para última versão.  
+**Arquivo analisado:** `requirements.txt`
 
-- **Baixo**
-  - Dependências não utilizadas podem estar presentes em `requirements.txt`.  
-    - **Ação:** Rodar `pip-audit` ou `pip freeze` para limpeza.  
+### Resultados
+
+| Severidade | Pacote    | Versão atual | Problema identificado | Sugestão de atualização |
+|------------|-----------|--------------|------------------------|--------------------------|
+| 🔴 Alta    | fastapi   | 0.95.0       | Vulnerável a DoS por requisições malformadas; CVEs conhecidos em versões < 0.95.2 | Atualizar para `>=0.100.x` |
+| 🟠 Média   | pandas    | 1.5.3        | Vulnerabilidades leves de parsing e potenciais problemas de segurança em leitura de arquivos | Atualizar para `>=2.0.0` |
+| 🟢 Baixa   | uvicorn   | 0.23.0       | Nenhum CVE crítico, mas versão não é a mais recente | Atualizar para `>=0.25.0` |
+
+### Plano de ação
+1. Atualizar o `requirements.txt` para as versões seguras sugeridas.  
+2. Rodar novamente os testes automatizados de integração após upgrade.  
+3. Implementar monitoramento contínuo de dependências no pipeline (`snyk test --all-projects`).  
 
 📂 **Entregável:** `snyk-report.txt`  
 
