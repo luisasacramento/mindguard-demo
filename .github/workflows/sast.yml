@@ -1,48 +1,36 @@
-name: SAST - Semgrep
+name: SAST - Static Analysis (Semgrep)
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, staging ]
   pull_request:
-    branches: [ main ]
+    types: [opened, synchronize, reopened]
 
 jobs:
-  semgrep-scan:
+  semgrep:
+    name: Run Semgrep SAST
     runs-on: ubuntu-latest
-
     steps:
-      # 1️⃣ Fazer checkout do código
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Configurar Python
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Run Semgrep scan
+        uses: returntocorp/semgrep-action@v1
         with:
-          python-version: '3.11'
+          config: >-
+            p/security-audit
+          # Você pode trocar por "auto" ou um .semgrep.yml no repositório
+          # config: auto
+          json: semgrep-report.json
+          sarif: semgrep-report.sarif
 
-      # 3️⃣ Instalar Semgrep
-      - name: Install Semgrep
-        run: pip install --upgrade pip semgrep
+      - name: Upload SARIF results (GitHub Security tab)
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: semgrep-report.sarif
 
-      # 4️⃣ Rodar Semgrep e gerar JSON
-      - name: Run Semgrep scan (JSON)
-        run: semgrep --config=https://semgrep.dev/p/python/lang/security --json > semgrep-report.json
-
-      # 5️⃣ Upload do JSON como artifact
-      - name: Upload JSON report
+      - name: Upload JSON report (artifact)
         uses: actions/upload-artifact@v4
         with:
           name: semgrep-report
           path: semgrep-report.json
-
-      # 6️⃣ Gerar relatório em Markdown (mais legível)
-      - name: Generate Markdown report
-        run: semgrep --config=https://semgrep.dev/p/python/lang/security --markdown > semgrep-report.md
-
-      # 7️⃣ Upload do Markdown como artifact
-      - name: Upload Markdown report
-        uses: actions/upload-artifact@v4
-        with:
-          name: semgrep-report-md
-          path: semgrep-report.md
