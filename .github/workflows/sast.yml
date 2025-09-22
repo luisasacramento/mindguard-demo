@@ -9,10 +9,9 @@ on:
 jobs:
   semgrep-scan:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -20,15 +19,24 @@ jobs:
           python-version: '3.11'
 
       - name: Install Semgrep
-        run: |
-          python -m pip install --upgrade pip
-          pip install semgrep
+        run: pip install --upgrade pip semgrep
 
       - name: Run Semgrep scan
-        run: semgrep --config=p/ci --json > semgrep-report.json
+        run: semgrep --config=https://semgrep.dev/p/python/lang/security --json > semgrep-report.json
 
-      - name: Upload Semgrep report
-        uses: actions/upload-artifact@v4
+      - name: Upload JSON report
+        uses: actions/upload-artifact@v3
         with:
           name: semgrep-report
           path: semgrep-report.json
+
+      - name: Generate Markdown report
+        run: |
+          pip install semgrep --upgrade
+          semgrep --config=https://semgrep.dev/p/python/lang/security --markdown > semgrep-report.md
+
+      - name: Upload Markdown report
+        uses: actions/upload-artifact@v3
+        with:
+          name: semgrep-report-md
+          path: semgrep-report.md
