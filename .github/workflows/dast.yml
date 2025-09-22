@@ -7,6 +7,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run OWASP ZAP baseline
-        uses: zaproxy/action-baseline@v1
+        uses: zaproxy/action-baseline@v0.7.0
         with:
           target: 'https://mindguard-demo-production.up.railway.app/'

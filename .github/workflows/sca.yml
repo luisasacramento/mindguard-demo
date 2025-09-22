@@ -7,7 +7,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: snyk/actions/setup@v4
+
+      - name: Set up Snyk
+        uses: snyk/actions/setup@master
         with:
           snyk-token: ${{ secrets.SNYK_TOKEN }}
-      - run: snyk test --all-projects
+
+      - name: Run Snyk test
+        run: snyk test --all-projects
