@@ -1,29 +1,13 @@
 # MindGuard Demo 🧠🎰
-Os Relátórios estão em Arquivos MD aqui na branch principal
+
+### Relátorio compilado: [COMPILADO-RELATÓRIOS](https://github.com/luisasacramento/mindguard-demo/blob/main/COMPILADO-RELAT%C3%93RIOS.md)
 
 
 Um projetinho **FastAPI** para demonstrar CI/CD com segurança (SAST, DAST, SCA).
 
-## 🚀 Como rodar
-
-```bash
-git clone <repo>
-cd mindguard_demo
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python create_model.py
-uvicorn app.main:app --reload --port 8000
-
-# MindGuard Demo Simplificada
-
-Esta é uma versão simplificada do projeto **MindGuard**, sem Machine Learning, mas com vulnerabilidades propositalmente incluídas para testes de segurança (SAST, DAST e SCA).
-
-## Instalação
-
-1. Criar ambiente virtual:
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
-
+## Integrantes
+Gabriel aparecido Cassalho Xavier RM 99794  
+Gustavo Vegi RM 550188  
+Lucas Rodrigues Delfino RM 550196  
+Luisa Cristina dos Santos Neves RM 551889  
+Pedro Henrique Silva de Morais RM 98804  
