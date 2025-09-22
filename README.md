@@ -2,7 +2,7 @@
 Os Relátórios estão em Arquivos MD aqui na branch principal
 
 
-Um projetinho **FastAPI + ML** para demonstrar CI/CD com segurança (SAST, DAST, SCA).
+Um projetinho **FastAPI** para demonstrar CI/CD com segurança (SAST, DAST, SCA).
 
 ## 🚀 Como rodar
 
