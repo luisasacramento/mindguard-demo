@@ -25,7 +25,7 @@ jobs:
           pip install semgrep
 
       - name: Run Semgrep scan
-        run: semgrep --config=p/ci
+        run: semgrep --config=p/ci --json > semgrep-report.json
 
       - name: Upload Semgrep report
         uses: actions/upload-artifact@v4
