@@ -13,7 +13,7 @@ jobs:
     steps:
       # 1️⃣ Fazer checkout do código
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # 2️⃣ Configurar Python
       - name: Set up Python
@@ -31,7 +31,7 @@ jobs:
 
       # 5️⃣ Upload do JSON como artifact
       - name: Upload JSON report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: semgrep-report
           path: semgrep-report.json
@@ -42,7 +42,7 @@ jobs:
 
       # 7️⃣ Upload do Markdown como artifact
       - name: Upload Markdown report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: semgrep-report-md
           path: semgrep-report.md
