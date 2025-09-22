@@ -1,36 +1,12 @@
-name: SAST - Static Analysis (Semgrep)
+name: SAST
 
-on:
-  push:
-    branches: [ main, staging ]
-  pull_request:
-    types: [opened, synchronize, reopened]
+on: [push, pull_request]
 
 jobs:
   semgrep:
-    name: Run Semgrep SAST
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Run Semgrep scan
-        uses: returntocorp/semgrep-action@v1
+      - uses: actions/checkout@v4
+      - uses: returntocorp/semgrep-action@v1
         with:
-          config: >-
-            p/security-audit
-          # Você pode trocar por "auto" ou um .semgrep.yml no repositório
-          # config: auto
-          json: semgrep-report.json
-          sarif: semgrep-report.sarif
-
-      - name: Upload SARIF results (GitHub Security tab)
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: semgrep-report.sarif
-
-      - name: Upload JSON report (artifact)
-        uses: actions/upload-artifact@v4
-        with:
-          name: semgrep-report
-          path: semgrep-report.json
+          config: p/security-audit

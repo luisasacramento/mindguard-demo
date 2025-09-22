@@ -1,0 +1,12 @@
+name: DAST
+
+on: [workflow_dispatch]
+
+jobs:
+  zap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run OWASP ZAP baseline
+        uses: zaproxy/action-baseline@v1
+        with:
+          target: 'https://mindguard-demo-production.up.railway.app/'
