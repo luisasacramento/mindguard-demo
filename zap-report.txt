@@ -1,0 +1,36 @@
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Starting OWASP ZAP Quick Scan against target: https://mindguard-demo-production.up.railway.app/
+  Active scan in progress...
+  Spidering endpoints...
+  Passive scanning...
+                                                                                                                        
+┌──────────────┐
+│ Findings     │
+└──────────────┘
+[CRITICAL] Remote Code Execution (RCE)
+Endpoint: /admin/run_eval?cmd=ls
+Evidence: Server executed arbitrary command 'ls' from query parameter.
+Recommendation: Remove this endpoint or restrict access to admins only.
+
+[HIGH] Information Disclosure
+Endpoint: /leak_env?secret_key=SECRET_KEY
+Evidence: Application returned value of SECRET_KEY environment variable.
+Recommendation: Do not expose secrets via API responses.
+
+[MEDIUM] User Enumeration
+Endpoints: /risk/{user_id}, /report/{user_id}
+Evidence: Different responses (403 vs 404) reveal existence of user IDs.
+Recommendation: Return generic error messages.
+
+[LOW] Missing Security Headers
+Details: HTTP responses lack headers: Strict-Transport-Security, Content-Security-Policy, X-Content-Type-Options.
+Recommendation: Add security headers via middleware.
+
+Summary
+Scan completed successfully.
+ • Findings: 4 (1 Critical, 1 High, 1 Medium, 1 Low)
+ • Endpoints scanned: 5
+ • Requests made: 12
+ • Duration: ~35s

@@ -1,0 +1,46 @@
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 11 files tracked by git with 1062 Code rules:
+                                                                                                                        
+  Language      Rules   Files          Origin      Rules                                                                
+ ─────────────────────────────        ───────────────────                                                               
+  <multilang>      48      11          Community    1062                                                                
+  python          243       5                                                                                           
+  yaml             31       1                                                                                           
+                                                                                                                        
+                
+                
+┌──────────────┐
+│ Findings     │
+└──────────────┘
+[CRITICAL] Remote Code Execution
+File: main.py, Line: 54
+Details: Usage of os.system(cmd) in /admin/run_eval endpoint with unsanitized user input.
+Recommendation: Remove or sanitize input. Use subprocess with whitelist.
+
+[HIGH] Environment Variable Exposure
+File: main.py, Line: 62
+Details: /leak_env endpoint exposes environment variables (SECRET_KEY) to unauthenticated users.
+Recommendation: Do not return secrets in API responses.
+
+[MEDIUM] Missing Authentication/Authorization
+Files: main.py (endpoints: insecure_admin, leak_env, report)
+Details: These endpoints are accessible without authentication.
+Recommendation: Implement proper authentication and RBAC.
+
+[LOW] Input Validation Issues
+Files: main.py (submit_bet, give_consent)
+Details: Parameters like user_id, amount, frequency are not validated; could allow malicious input.
+Recommendation: Use Pydantic models to enforce types, ranges, and required fields.
+
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+Scan completed successfully.
+ • Findings: 4 (1 Critical, 1 High, 1 Medium, 1 Low)
+ • Rules run: 321
+ • Targets scanned: 11
+ • Parsed lines: ~100.0%
+ • Scan was limited to files tracked by git
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
