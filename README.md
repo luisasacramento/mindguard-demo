@@ -1,7 +1,7 @@
 # 🧠🎰 MindGuard Demo
 
 ##### Um projetinho **FastAPI** para demonstrar **CI/CD com foco em segurança**
-
+####  Reports estão em json na pasta reports/
 ## Integrantes
 
 - **Gabriel Aparecido Cassalho Xavier** – RM 99794  
