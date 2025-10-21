@@ -1,15 +1,6 @@
 # 🧠🎰 MindGuard Demo
 
- Um projetinho **FastAPI** para demonstrar **CI/CD com foco em segurança**:  
-
-## 📂 Entregas
-
-| 1️⃣ | SAST [semgrep-report](https://github.com/luisasacramento/mindguard-demo/blob/main/semgrep-report.txt)  
-| 2️⃣ | DAST  [zap-report](https://github.com/luisasacramento/mindguard-demo/blob/main/zap-report.txt)  
-| 3️⃣ | SCA   [snyk-report](https://github.com/luisasacramento/mindguard-demo/blob/main/snyk-report.txt)  
-| 4️⃣ | Relatório compilado  [COMPILADO-RELATÓRIOS](https://github.com/luisasacramento/mindguard-demo/blob/main/COMPILADO-RELAT%C3%93RIOS.md)  
-
----
+##### Um projetinho **FastAPI** para demonstrar **CI/CD com foco em segurança**
 
 ## Integrantes
 
