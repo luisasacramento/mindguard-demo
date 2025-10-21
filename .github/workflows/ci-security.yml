@@ -7,61 +7,91 @@ on:
     branches: [ main ]
 
 jobs:
-  prepare:
+  setup:
     runs-on: ubuntu-latest
     outputs:
-      image: ${{ steps.python.outcome }}
-    steps:
-      - uses: actions/checkout@v4
-
-  semgrep:
-    runs-on: ubuntu-latest
-    needs: prepare
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run Semgrep
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: ./ci/semgrep-rules  # pasta com regras custom
-      - name: Upload semgrep report
-        if: always()
-        run: |
-          mkdir -p reports
-          semgrep --config ./ci/semgrep-rules --json > reports/semgrep-report.json
-          cat reports/semgrep-report.json | jq '.summary'
-
-  snyk:
-    runs-on: ubuntu-latest
-    needs: semgrep
-    steps:
-      - uses: actions/checkout@v4
-      - name: Snyk test
-        uses: snyk/actions/python@v2
-        with:
-          command: test
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-  tests:
-    runs-on: ubuntu-latest
-    needs: snyk
+      python-version: 3.11
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      - name: Install deps
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest requests
-      - name: Run unit & security tests
+          pip install pytest pytest-json-report semgrep snyk requests
+
+  semgrep:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Semgrep JSON
         run: |
-          pytest -q --disable-warnings --maxfail=1
-      - name: Save pytest artifacts
-        if: always()
-        run: mkdir -p reports && pytest --json-report --json-report-file=reports/pytest.json || true
+          mkdir -p reports
+          semgrep --config ./ci/semgrep-rules --json > reports/semgrep-report.json || true
+          cat reports/semgrep-report.json | jq '.summary'
+      - name: Upload Semgrep report
+        uses: actions/upload-artifact@v3
+        with:
+          name: semgrep-report
+          path: reports/semgrep-report.json
+
+  snyk:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Snyk
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          mkdir -p reports
+          snyk auth $SNYK_TOKEN
+          snyk test --json > reports/snyk-report.json || true
+          snyk monitor
+      - name: Upload Snyk report
+        uses: actions/upload-artifact@v3
+        with:
+          name: snyk-report
+          path: reports/snyk-report.json
+
+  tests:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Pytest JSON
+        run: |
+          mkdir -p reports
+          pytest -q --disable-warnings --maxfail=1 --json-report --json-report-file=reports/pytest.json || true
+      - name: Upload Pytest report
+        uses: actions/upload-artifact@v3
+        with:
+          name: pytest-report
+          path: reports/pytest.json
+
+  zap:
+    runs-on: ubuntu-latest
+    needs: tests
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start app (background)
+        run: |
+          docker run -d --name mindguard-svc -p 8000:8000 ghcr.io/luisasacramento/mindguard-demo:latest
+          sleep 10
+      - name: OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.5.0
+        with:
+          target: 'http://localhost:8000'
+          rules_file_name: ci/zap-ignore.conf
+      - name: Upload ZAP report
+        uses: actions/upload-artifact@v3
+        with:
+          name: zap-report
+          path: reports/
 
   sonar:
     runs-on: ubuntu-latest
@@ -75,22 +105,3 @@ jobs:
             -Dsonar.projectKey=mindguard-demo
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-  zap:
-    runs-on: ubuntu-latest
-    needs: tests
-    steps:
-      - uses: actions/checkout@v4
-      - name: Start app (background)
-        run: |
-          docker run -d --name mindguard-svc -p 8000:8000 ghcr.io/luisasacramento/mindguard-demo:latest || true
-          # se voce usa start.sh, ajuste aqui para iniciar a app em modo staging
-      - name: OWASP ZAP baseline scan
-        uses: zaproxy/action-baseline@v0.5.0
-        with:
-          target: 'http://localhost:8000'
-          rules_file_name: ci/zap-ignore.conf
-      - name: Upload zap report
-        if: always()
-        run: |
-          echo "zap run finished" 
