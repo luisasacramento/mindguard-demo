@@ -5,7 +5,9 @@
 .github/workflows/dast.yml
 
 # Ignorar relatórios e logs
-*.txt
+semgrep-report.txt
+snyk-report.txt
+zap-report.txt
 *.log
 
 # Cache e arquivos temporários do Python
