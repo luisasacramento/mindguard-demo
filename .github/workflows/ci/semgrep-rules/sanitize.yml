@@ -1,0 +1,14 @@
+rules:
+  - id: missing-input-sanitization
+    pattern-either:
+      - pattern: |
+          def $FUNC(...):
+            ...
+            $DB.execute("... " + $UNTRUSTED)
+      - pattern: |
+          cursor.execute("... %s" % $UNTRUSTED)
+    message: "Uso de concatenação em queries/entrada sem sanitização. Use prepared statements / ORMs ou validação whitelist."
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security

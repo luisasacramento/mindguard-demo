@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+env/
+venv/
+
+# Logs e relatórios
+*.log
+*.txt
+reports/
+storage.json
+
+# IDEs e configs locais
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Coverage e pytest
+htmlcov/
+.coverage
+.pytest_cache/

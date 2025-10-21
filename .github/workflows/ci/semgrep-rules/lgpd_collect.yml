@@ -1,0 +1,8 @@
+rules:
+  - id: pii-collection
+    pattern: |
+      def $FUNC(..., cpf, $OTHER):
+        ...
+    message: "Detectada coleta direta de CPF no handler. Verifique se é estritamente necessária (LGPD minimização)."
+    severity: WARNING
+    languages: [python]
